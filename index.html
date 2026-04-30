@@ -447,7 +447,9 @@ const CATEGORIES = [
 
 // ── STATE ────────────────────────────────────────────────────────────────────
 let currentCatId = null;
-const GS_URL = 'https://script.google.com/macros/s/AKfycbzxcWCyRzqnA8j3GgQ9hatSTibVt8jAeuhcLbCQaYmqGMf5_KM7Fwog1IFoXtRvkJQw/exec';
+const SB_URL = 'https://dgeingvndylxvribpjfy.supabase.co/rest/v1/records';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnZWluZ3ZuZHlseHZyaWJwamZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzE2ODgsImV4cCI6MjA5MzEwNzY4OH0.VsyC3EUq2Iv0Lb91ZweiIk51VftePsKjvBstm-hXHAI';
+const SB_HEADERS = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Prefer': 'return=minimal' };
 
 function showToast(msg, type) {
   let t = document.getElementById('gs-toast');
@@ -472,31 +474,25 @@ function setSyncStatus(state) {
   el.textContent = map[state] || '';
 }
 
-function toRows() {
-  const rows = [['catId', 'date', 'desc', 'km', 'price']];
-  CATEGORIES.forEach(cat => {
-    cat.records.forEach(r => {
-      rows.push([cat.id, r.date, r.desc, r.km != null ? r.km : '', r.price || 0]);
-    });
-  });
-  return rows;
+function saveToLocalStorage() {
+  localStorage.setItem('myrecords_v2', JSON.stringify(
+    CATEGORIES.map(c => ({ id: c.id, records: c.records }))
+  ));
 }
 
-function fromRows(rows) {
-  if (!rows || rows.length < 2) return false;
-  const header = rows[0];
-  const ci = header.indexOf('catId'), di = header.indexOf('date'),
-        dsi = header.indexOf('desc'), ki = header.indexOf('km'), pi = header.indexOf('price');
-  if (ci < 0 || di < 0) return false;
-  CATEGORIES.forEach(c => c.records = []);
-  rows.slice(1).forEach(row => {
-    const cat = CATEGORIES.find(c => c.id === row[ci]);
-    if (!cat) return;
-    const rec = { date: row[di], desc: row[dsi], price: parseFloat(row[pi]) || 0 };
-    if (row[ki] !== '' && row[ki] != null) rec.km = parseInt(row[ki]);
-    cat.records.push(rec);
-  });
-  return true;
+function loadFromLocalStorage() {
+  const saved = localStorage.getItem('myrecords_v2');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      parsed.forEach(sc => {
+        const cat = CATEGORIES.find(c => c.id === sc.id);
+        if (cat) cat.records = sc.records;
+      });
+      return true;
+    } catch(e) {}
+  }
+  return false;
 }
 
 function saveToLocalStorage() {
@@ -520,59 +516,62 @@ function loadFromLocalStorage() {
   return false;
 }
 
-function gsCall(params) {
-  return new Promise((resolve) => {
-    const cb = 'gs_' + Date.now() + '_' + Math.floor(Math.random()*9999);
-    const timer = setTimeout(() => {
-      delete window[cb];
-      if (s && s.parentNode) s.parentNode.removeChild(s);
-      resolve(null);
-    }, 10000);
-    window[cb] = (data) => {
-      clearTimeout(timer);
-      delete window[cb];
-      if (s && s.parentNode) s.parentNode.removeChild(s);
-      resolve(data);
-    };
-    const s = document.createElement('script');
-    s.src = GS_URL + '?' + params + '&callback=' + cb;
-    s.onerror = () => { clearTimeout(timer); delete window[cb]; resolve(null); };
-    document.head.appendChild(s);
-  });
-}
-
 async function loadData() {
   setSyncStatus('loading');
-  showToast('Loading from Google Sheets…');
+  showToast('Loading from Supabase…');
   loadFromLocalStorage();
-  const json = await gsCall('action=load');
-  if (!json) {
-    setSyncStatus('error');
-    showToast('Could not reach Google Sheets — using local data', 'error');
-    return;
-  }
-  if (json.ok && json.data && json.data.length > 1) {
-    const loaded = fromRows(json.data);
-    if (loaded) {
+  try {
+    const res = await fetch(SB_URL + '?order=id', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+    if (rows && rows.length > 0) {
+      CATEGORIES.forEach(c => c.records = []);
+      rows.forEach(r => {
+        const cat = CATEGORIES.find(c => c.id === r.cat_id);
+        if (!cat) return;
+        const rec = { date: r.date, desc: r.desc, price: r.price || 0 };
+        if (r.km != null) rec.km = r.km;
+        cat.records.push(rec);
+      });
       saveToLocalStorage();
-      showToast('Loaded from Google Sheets', 'success');
+      showToast('Loaded ✓', 'success');
       setSyncStatus('ok');
-      return;
+    } else {
+      // Empty DB — push all local data up
+      await pushAllToSupabase();
     }
+  } catch(e) {
+    setSyncStatus('error');
+    showToast('Could not reach Supabase — using local data', 'error');
   }
-  // Sheet is empty — push local data up
-  await saveData();
+}
+
+async function pushAllToSupabase() {
+  // Delete all then insert fresh
+  await fetch(SB_URL + '?id=gte.0', { method: 'DELETE', headers: SB_HEADERS });
+  const rows = [];
+  CATEGORIES.forEach(cat => {
+    cat.records.forEach(r => {
+      const row = { cat_id: cat.id, date: r.date, desc: r.desc, price: r.price || 0 };
+      if (r.km != null) row.km = r.km;
+      rows.push(row);
+    });
+  });
+  if (rows.length) {
+    await fetch(SB_URL, { method: 'POST', headers: SB_HEADERS, body: JSON.stringify(rows) });
+  }
+  setSyncStatus('ok');
+  showToast('Synced to Supabase ✓', 'success');
 }
 
 async function saveData() {
   saveToLocalStorage();
   setSyncStatus('loading');
-  const payload = encodeURIComponent(JSON.stringify({ action: 'save', rows: toRows() }));
-  const json = await gsCall('data=' + payload);
-  if (json && json.ok) {
-    setSyncStatus('ok');
-    showToast('Saved to Google Sheets ✓', 'success');
-  } else {
+  try {
+    await pushAllToSupabase();
+  } catch(e) {
     setSyncStatus('error');
     showToast('Saved locally (sync failed)', 'error');
   }
