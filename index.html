@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>My Records</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F3EF;
+    --card: #FFFFFF;
+    --text: #1A1A1A;
+    --muted: #8A8580;
+    --accent: #2D6A4F;
+    --accent-light: #E8F4F0;
+    --accent2: #E07A27;
+    --border: #E8E5E0;
+    --shadow: 0 2px 16px rgba(0,0,0,0.07);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+  }
+
+  /* HEADER */
+  .app-header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 18px; flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .back-btn:hover { background: var(--border); }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 22px; flex: 1; }
+  .header-sub { font-size: 13px; color: var(--muted); margin-top: 1px; }
+
+  /* LANDING */
+  #landing { padding: 24px 20px 0; }
+  .greeting { margin-bottom: 24px; }
+  .greeting h1 { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1.2; }
+  .greeting p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .cat-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.10); border-color: var(--border); }
+  .cat-card:active { transform: scale(0.97); }
+  .cat-emoji { font-size: 28px; margin-bottom: 10px; display: block; }
+  .cat-name { font-weight: 600; font-size: 15px; line-height: 1.3; }
+  .cat-count { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .cat-accent { position: absolute; right: 0; top: 0; width: 60px; height: 60px; border-radius: 0 16px 0 60px; opacity: 0.12; }
+
+  /* RECORD LIST */
+  #record-view { display: none; padding: 0; }
+  .record-summary {
+    margin: 16px 20px;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex; gap: 16px;
+    box-shadow: var(--shadow);
+  }
+  .summary-item { flex: 1; text-align: center; }
+  .summary-val { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--accent); }
+  .summary-label { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .records-list { padding: 0 20px; }
+  .record-item {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    border-left: 3px solid var(--accent);
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px;
+  }
+  .record-item.has-price { border-left-color: var(--accent2); }
+  .record-left { flex: 1; }
+  .record-date { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+  .record-desc { font-size: 14px; font-weight: 500; margin-top: 3px; line-height: 1.4; }
+  .record-km { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .record-price {
+    font-weight: 600; font-size: 14px;
+    color: var(--accent2);
+    white-space: nowrap;
+  }
+  .record-price.free { color: var(--muted); font-weight: 400; font-size: 13px; }
+
+  /* ADD BUTTON */
+  .add-fab {
+    position: fixed;
+    bottom: 24px; right: 50%;
+    transform: translateX(50%);
+    max-width: 440px;
+    width: calc(100% - 40px);
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(45,106,79,0.35);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 200;
+  }
+  .add-fab:hover { transform: translateX(50%) translateY(-2px); box-shadow: 0 10px 28px rgba(45,106,79,0.4); }
+  .add-fab:active { transform: translateX(50%) scale(0.97); }
+  #landing .add-fab { display: none; }
+
+  /* SHARE */
+  .share-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 17px;
+    transition: background 0.15s;
+  }
+  .share-btn:hover { background: var(--border); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 300;
+    align-items: flex-end; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--card);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 36px;
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.25s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 20px; }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); background: white; }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: flex; gap: 12px; }
+  .form-row .form-group { flex: 1; }
+
+  .btn-submit {
+    width: 100%; padding: 15px;
+    background: var(--accent); color: white;
+    border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer; margin-top: 8px;
+    transition: background 0.15s;
+  }
+  .btn-submit:hover { background: #235a42; }
+
+  /* Delete */
+  .record-item { cursor: pointer; }
+  .delete-confirm {
+    background: #FEF0EC; border: 1.5px solid #F4C5B2;
+    border-radius: 12px; padding: 16px; margin-bottom: 10px;
+    font-size: 14px; line-height: 1.5;
+  }
+  .delete-btns { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-del { flex: 1; padding: 10px; border: none; border-radius: 9px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .btn-del.cancel { background: var(--border); color: var(--text); }
+  .btn-del.confirm { background: #D94B2B; color: white; }
+
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+
+  /* Tag for category color */
+  .cat-card[data-cat="0"] .cat-accent { background: #4A90E2; }
+  .cat-card[data-cat="1"] .cat-accent { background: #E07A27; }
+  .cat-card[data-cat="2"] .cat-accent { background: #2D6A4F; }
+  .cat-card[data-cat="3"] .cat-accent { background: #9B59B6; }
+  .cat-card[data-cat="4"] .cat-accent { background: #E74C3C; }
+  .cat-card[data-cat="5"] .cat-accent { background: #1ABC9C; }
+  .cat-card[data-cat="6"] .cat-accent { background: #F39C12; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    padding: 0 20px; margin-bottom: 10px; margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="landing">
+  <div class="app-header">
+    <div style="flex:1">
+      <div class="header-title">My Records 📋</div>
+      <div class="header-sub">Personal maintenance log</div>
+    </div>
+  </div>
+  <div style="padding: 0 20px;">
+    <div class="greeting">
+      <h1>Your Records</h1>
+      <p id="total-summary">Loading...</p>
+      <p id="sync-status" style="font-size:12px;color:#8A8580;margin-top:4px;"></p>
+    </div>
+    <div class="category-grid" id="cat-grid"></div>
+  </div>
+</div>
+
+<!-- RECORD VIEW -->
+<div id="record-view">
+  <div class="app-header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div style="flex:1">
+      <div class="header-title" id="view-title"></div>
+      <div class="header-sub" id="view-sub"></div>
+    </div>
+    <div class="share-btn" onclick="shareRecords()" title="Share">⬆︎</div>
+  </div>
+  <div class="record-summary">
+    <div class="summary-item">
+      <div class="summary-val" id="sum-count">0</div>
+      <div class="summary-label">Entries</div>
+    </div>
+    <div class="summary-item" id="sum-km-wrap" style="display:none">
+      <div class="summary-val" id="sum-km">0</div>
+      <div class="summary-label">Latest KM</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-val" id="sum-cost">0</div>
+      <div class="summary-label">Total Cost</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-val" id="sum-year">—</div>
+      <div class="summary-label">Last Entry</div>
+    </div>
+  </div>
+  <div class="section-label">History</div>
+  <div class="records-list" id="records-list"></div>
+  <div style="height: 100px;"></div>
+</div>
+
+<!-- FAB -->
+<button class="add-fab" id="add-fab" onclick="openAddModal()">
+  <span>+</span> Add Record
+</button>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="add-modal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add New Record</div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" class="form-input" id="f-date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="f-desc" placeholder="What happened?"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group" id="km-group" style="display:none">
+        <label class="form-label">KM</label>
+        <input type="number" class="form-input" id="f-km" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cost (฿)</label>
+        <input type="number" class="form-input" id="f-price" placeholder="0">
+      </div>
+    </div>
+    <button class="btn-submit" onclick="saveRecord()">Save Record</button>
+  </div>
+</div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────────────────
+const CATEGORIES = [
+  {
+    id: "honda_civic",
+    name: "Honda Civic 2024",
+    emoji: "🚙",
+    hasKM: true,
+    records: [
+      { date: "2024-09-01", desc: "Start From Honda", km: 0, price: 400000 },
+      { date: "2024-12-07", desc: "เช็คระยะ 10000", km: 8216, price: 0 },
+      { date: "2024-11-10", desc: "เคลมแร็คพวงมาลัย", km: 12285, price: 0 },
+      { date: "2025-01-15", desc: "เช็คระยะ 20,000 สลับยางถ่วงล้อ เคลมแบตใหม่", km: 18086, price: 0 },
+      { date: "2025-01-15", desc: "เคลมสปริงแร็ค พวงมาลัยไฟฟ้า", km: 18086, price: 0 },
+      { date: "2025-06-19", desc: "เช็คระยะ 30000 เคลมไฟท้ายสองข้าง", km: 26536, price: 0 },
+      { date: "2025-06-19", desc: "ตรวจสอบปั๊มน้ำมันเชื้อเพลิง", km: 26536, price: 0 },
+      { date: "2025-12-28", desc: "เช็คระยะ 40000", km: 36584, price: 0 },
+      { date: "2025-12-28", desc: "ปะยางสตรีมล้อหลังขวา", km: 36584, price: 180 },
+      { date: "2026-10-01", desc: "ใบปัดน้ำฝน TRAPO", km: 38000, price: 650 },
+      { date: "2026-04-15", desc: "ปะยางสตรีมล้อหลังขวา", km: 40000, price: 180 },
+    ]
+  },
+  {
+    id: "suzuki_lets",
+    name: "Suzuki Lets",
+    emoji: "🛵",
+    hasKM: false,
+    records: [
+      { date: "2023-09-13", desc: "เปลี่ยนยางนอกยางในล้อหลัง ร้านปากซอย", price: 650 },
+      { date: "2024-05-24", desc: "ซื้อพรบต่อภาษี", price: 534 },
+      { date: "2024-08-15", desc: "เปลี่ยนยางในล้อหน้า", price: 120 },
+      { date: "2025-10-01", desc: "เปลี่ยนยางในและนอกล้อหน้า", price: 650 },
+      { date: "2025-03-22", desc: "เปลี่ยนยางนอกยางใน ล้อหลัง", price: 600 },
+      { date: "2025-04-26", desc: "เปลี่ยนน้ำมันเครื่อง เปลี่ยนหลอดไฟหน้า", price: 250 },
+      { date: "2025-11-15", desc: "เปลี่ยนยางใน ล้อหลัง", price: 150 },
+      { date: "2026-04-16", desc: "เปลี่ยนยางใน ล้อหลัง", price: 150 },
+    ]
+  },
+  {
+    id: "air_living",
+    name: "Air Living Room",
+    emoji: "❄️",
+    hasKM: false,
+    records: [
+      { date: "2023-05-05", desc: "แอร์ใหม่ mitsu", price: 40000 },
+      { date: "2024-08-01", desc: "ช่างล้าง", price: 650 },
+      { date: "2024-07-25", desc: "ช่างล้าง", price: 500 },
+      { date: "2025-02-23", desc: "ช่างล้าง", price: 500 },
+      { date: "2025-09-13", desc: "ช่างล้าง", price: 500 },
+      { date: "2026-05-04", desc: "ล้างเอง norca", price: 0 },
+    ]
+  },
+  {
+    id: "air_mom",
+    name: "Air Mom's Room",
+    emoji: "❄️",
+    hasKM: false,
+    records: [
+      { date: "2019-11-16", desc: "ตัดล้าง", price: 1700 },
+      { date: "2021-04-27", desc: "ล้างเอง", price: 0 },
+      { date: "2021-09-14", desc: "ล้างเอง", price: 0 },
+      { date: "2021-09-20", desc: "เติมน้ำยา", price: 300 },
+      { date: "2023-06-01", desc: "ล้างเองnorca", price: 0 },
+      { date: "2024-01-18", desc: "ล้างเอง norca", price: 0 },
+      { date: "2024-01-06", desc: "ล้างคอยร้อน", price: 0 },
+      { date: "2025-04-07", desc: "ล้างเอง norca", price: 0 },
+    ]
+  },
+  {
+    id: "air_phruek",
+    name: "Air Phruek's Room",
+    emoji: "❄️",
+    hasKM: false,
+    records: [
+      { date: "2021-03-08", desc: "ล้างเอง", price: 0 },
+      { date: "2022-08-16", desc: "ล้าง norca", price: 0 },
+      { date: "2024-08-27", desc: "ล้าง norca", price: 0 },
+      { date: "2026-02-28", desc: "ล้าง norca", price: 0 },
+    ]
+  },
+  {
+    id: "air_myroom",
+    name: "Air My Room",
+    emoji: "❄️",
+    hasKM: false,
+    records: [
+      { date: "2019-09-30", desc: "ตัดล้าง", price: 1700 },
+      { date: "2021-01-15", desc: "ล้างเอง", price: 0 },
+      { date: "2022-01-30", desc: "ล้างเอง", price: 0 },
+      { date: "2023-07-01", desc: "ล้างเองnorca", price: 0 },
+      { date: "2023-04-09", desc: "ล้างเองnorca", price: 0 },
+      { date: "2023-08-11", desc: "ซ่อมแมคเนติค", price: 1600 },
+      { date: "2024-04-25", desc: "ล้างถาดน้ำทิ้งกับท่อ", price: 0 },
+      { date: "2024-05-20", desc: "ล้างคอยร้อนเอง", price: 0 },
+      { date: "2024-10-24", desc: "ล้าง norca", price: 0 },
+      { date: "2025-01-19", desc: "ล้างถาดน้ำทิ้ง เป่าท่อ", price: 0 },
+      { date: "2025-05-21", desc: "ล้างถาดน้ำทิ้ง เป่าท่อ", price: 0 },
+      { date: "2025-05-24", desc: "ใช้น้ำยาล้างท่อน้ำทิ้งแอร์", price: 103 },
+      { date: "2025-05-10", desc: "ล้าง norca", price: 0 },
+    ]
+  },
+  {
+    id: "house",
+    name: "House Service",
+    emoji: "🏠",
+    hasKM: false,
+    records: [
+      { date: "2020-11-17", desc: "ซ่อมท่อน้ำหลังบ้าน และ ท่อน้ำเข้าปั้มน้ำ", price: 1500 },
+      { date: "2020-12-19", desc: "เดินท่อลอย จากมิเตอร์เข้าหลังบ้าน พี่สมรัตน์", price: 1800 },
+      { date: "2021-01-24", desc: "ยาแนวห้องน้ำ ชั้น 1", price: 300 },
+      { date: "2021-01-29", desc: "ยาแนวห้องน้ำชั้น 3", price: 200 },
+      { date: "2024-10-10", desc: "ยาแนวห้องน้ำชั้น1", price: 200 },
+      { date: "2024-08-14", desc: "หลอดไฟครัวและหิ้งพระ", price: 155 },
+      { date: "2024-10-29", desc: "หลอดไฟหน้าบ้านประตู", price: 110 },
+      { date: "2025-06-20", desc: "กำจัดปลวกตรงบันได", price: 600 },
+    ]
+  },
+];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let currentCatId = null;
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzxcWCyRzqnA8j3GgQ9hatSTibVt8jAeuhcLbCQaYmqGMf5_KM7Fwog1IFoXtRvkJQw/exec';
+
+function showToast(msg, type) {
+  let t = document.getElementById('gs-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'gs-toast';
+    t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;transition:opacity 0.3s;white-space:nowrap;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#D94B2B' : type === 'success' ? '#2D6A4F' : '#333';
+  t.style.color = 'white';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 2500);
+}
+
+function setSyncStatus(state) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const map = { loading: '⏳ Syncing...', ok: '☁️ Synced', error: '⚠️ Offline' };
+  el.textContent = map[state] || '';
+}
+
+function toRows() {
+  const rows = [['catId', 'date', 'desc', 'km', 'price']];
+  CATEGORIES.forEach(cat => {
+    cat.records.forEach(r => {
+      rows.push([cat.id, r.date, r.desc, r.km != null ? r.km : '', r.price || 0]);
+    });
+  });
+  return rows;
+}
+
+function fromRows(rows) {
+  if (!rows || rows.length < 2) return false;
+  const header = rows[0];
+  const ci = header.indexOf('catId'), di = header.indexOf('date'),
+        dsi = header.indexOf('desc'), ki = header.indexOf('km'), pi = header.indexOf('price');
+  if (ci < 0 || di < 0) return false;
+  CATEGORIES.forEach(c => c.records = []);
+  rows.slice(1).forEach(row => {
+    const cat = CATEGORIES.find(c => c.id === row[ci]);
+    if (!cat) return;
+    const rec = { date: row[di], desc: row[dsi], price: parseFloat(row[pi]) || 0 };
+    if (row[ki] !== '' && row[ki] != null) rec.km = parseInt(row[ki]);
+    cat.records.push(rec);
+  });
+  return true;
+}
+
+function saveToLocalStorage() {
+  localStorage.setItem('myrecords_v2', JSON.stringify(
+    CATEGORIES.map(c => ({ id: c.id, records: c.records }))
+  ));
+}
+
+function loadFromLocalStorage() {
+  const saved = localStorage.getItem('myrecords_v2');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      parsed.forEach(sc => {
+        const cat = CATEGORIES.find(c => c.id === sc.id);
+        if (cat) cat.records = sc.records;
+      });
+      return true;
+    } catch(e) {}
+  }
+  return false;
+}
+
+async function loadData() {
+  setSyncStatus('loading');
+  showToast('Loading from Google Sheets…');
+  loadFromLocalStorage();
+  try {
+    const res = await fetch(GS_URL + '?action=load', {
+      method: 'GET',
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    const json = JSON.parse(text);
+    if (json.ok && json.data && json.data.length > 1) {
+      const loaded = fromRows(json.data);
+      if (loaded) {
+        saveToLocalStorage();
+        showToast('Loaded from Google Sheets', 'success');
+        setSyncStatus('ok');
+        return;
+      }
+    }
+    await saveData();
+  } catch(e) {
+    setSyncStatus('error');
+    showToast('Could not reach Google Sheets — using local data', 'error');
+  }
+}
+
+async function saveData() {
+  saveToLocalStorage();
+  setSyncStatus('loading');
+  try {
+    const payload = encodeURIComponent(JSON.stringify({ action: 'save', rows: toRows() }));
+    const res = await fetch(GS_URL + '?data=' + payload, {
+      method: 'GET',
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    const json = JSON.parse(text);
+    if (json.ok) {
+      setSyncStatus('ok');
+      showToast('Saved to Google Sheets ✓', 'success');
+    } else {
+      throw new Error(json.error);
+    }
+  } catch(e) {
+    setSyncStatus('error');
+    showToast('Saved locally (sync failed)', 'error');
+  }
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────────────────
+function fmt(n) {
+  return n.toLocaleString('th-TH');
+}
+function fmtDate(d) {
+  try {
+    const dt = new Date(d);
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch { return d; }
+}
+function sortRecords(records) {
+  return [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// ── LANDING ──────────────────────────────────────────────────────────────────
+function renderLanding() {
+  const grid = document.getElementById('cat-grid');
+  const total = CATEGORIES.reduce((s, c) => s + c.records.length, 0);
+  document.getElementById('total-summary').textContent = `${CATEGORIES.length} categories · ${total} entries`;
+
+  grid.innerHTML = CATEGORIES.map((cat, i) => {
+    const cost = cat.records.reduce((s, r) => s + (r.price || 0), 0);
+    const sorted = sortRecords(cat.records);
+    const last = sorted[0] ? fmtDate(sorted[0].date) : '—';
+    return `
+      <div class="cat-card" data-cat="${i}" onclick="openCategory('${cat.id}')">
+        <div class="cat-accent"></div>
+        <span class="cat-emoji">${cat.emoji}</span>
+        <div class="cat-name">${cat.name}</div>
+        <div class="cat-count">${cat.records.length} entries · ฿${fmt(cost)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── CATEGORY VIEW ────────────────────────────────────────────────────────────
+function openCategory(id) {
+  currentCatId = id;
+  const cat = CATEGORIES.find(c => c.id === id);
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('record-view').style.display = 'block';
+  document.getElementById('add-fab').style.display = 'flex';
+  document.getElementById('view-title').textContent = cat.emoji + ' ' + cat.name;
+
+  // KM field visibility
+  document.getElementById('km-group').style.display = cat.hasKM ? 'block' : 'none';
+
+  renderRecords(cat);
+}
+
+function renderRecords(cat) {
+  const sorted = sortRecords(cat.records);
+  const totalCost = cat.records.reduce((s, r) => s + (r.price || 0), 0);
+  const latestKM = cat.hasKM ? Math.max(...cat.records.map(r => r.km || 0)) : 0;
+  const lastDate = sorted[0] ? fmtDate(sorted[0].date) : '—';
+
+  document.getElementById('sum-count').textContent = cat.records.length;
+  document.getElementById('sum-cost').textContent = '฿' + fmt(totalCost);
+  document.getElementById('sum-year').textContent = lastDate.split(' ').pop() || '—';
+  document.getElementById('view-sub').textContent = cat.records.length + ' entries';
+
+  const kmWrap = document.getElementById('sum-km-wrap');
+  if (cat.hasKM) {
+    kmWrap.style.display = '';
+    document.getElementById('sum-km').textContent = fmt(latestKM);
+  } else {
+    kmWrap.style.display = 'none';
+  }
+
+  const list = document.getElementById('records-list');
+  if (!sorted.length) {
+    list.innerHTML = '<div class="empty-state"><div class="emoji">📭</div><p>No records yet</p></div>';
+    return;
+  }
+
+  list.innerHTML = sorted.map((r, i) => {
+    const orig_i = cat.records.indexOf(r);
+    const hasPrice = r.price > 0;
+    return `
+      <div class="record-item ${hasPrice ? 'has-price' : ''}" onclick="confirmDelete('${cat.id}', ${orig_i})" id="ri-${orig_i}">
+        <div class="record-left">
+          <div class="record-date">${fmtDate(r.date)}</div>
+          <div class="record-desc">${r.desc}</div>
+          ${r.km != null && cat.hasKM ? `<div class="record-km">📍 ${fmt(r.km)} km</div>` : ''}
+        </div>
+        <div class="record-price ${hasPrice ? '' : 'free'}">${hasPrice ? '฿' + fmt(r.price) : 'Free'}</div>
+      </div>`;
+  }).join('');
+}
+
+let deleteTarget = null;
+function confirmDelete(catId, idx) {
+  if (deleteTarget && deleteTarget.catId === catId && deleteTarget.idx === idx) {
+    deleteTarget = null;
+    const cat = CATEGORIES.find(c => c.id === catId);
+    renderRecords(cat);
+    return;
+  }
+  deleteTarget = { catId, idx };
+  const elId = `ri-${idx}`;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const cat = CATEGORIES.find(c => c.id === catId);
+  const rec = cat.records[idx];
+  el.outerHTML = `
+    <div class="delete-confirm" id="dc-${idx}">
+      <strong>Delete this entry?</strong><br>${rec.desc}
+      <div class="delete-btns">
+        <button class="btn-del cancel" onclick="cancelDelete('${catId}')">Cancel</button>
+        <button class="btn-del confirm" onclick="doDelete('${catId}', ${idx})">Delete</button>
+      </div>
+    </div>`;
+}
+function cancelDelete(catId) {
+  deleteTarget = null;
+  const cat = CATEGORIES.find(c => c.id === catId);
+  renderRecords(cat);
+}
+async function doDelete(catId, idx) {
+  const cat = CATEGORIES.find(c => c.id === catId);
+  cat.records.splice(idx, 1);
+  await saveData();
+  deleteTarget = null;
+  renderRecords(cat);
+}
+
+function goBack() {
+  document.getElementById('record-view').style.display = 'none';
+  document.getElementById('add-fab').style.display = 'none';
+  document.getElementById('landing').style.display = 'block';
+  currentCatId = null;
+  renderLanding();
+}
+
+// ── ADD RECORD ────────────────────────────────────────────────────────────────
+function openAddModal() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f-date').value = today;
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-km').value = '';
+  document.getElementById('f-price').value = '';
+  document.getElementById('add-modal').classList.add('open');
+}
+function closeModal(e) {
+  document.getElementById('add-modal').classList.remove('open');
+}
+async function saveRecord() {
+  const date = document.getElementById('f-date').value;
+  const desc = document.getElementById('f-desc').value.trim();
+  const km = parseInt(document.getElementById('f-km').value) || undefined;
+  const price = parseFloat(document.getElementById('f-price').value) || 0;
+  if (!date || !desc) { alert('Please fill in date and description'); return; }
+  const cat = CATEGORIES.find(c => c.id === currentCatId);
+  const rec = { date, desc, price };
+  if (cat.hasKM && km !== undefined) rec.km = km;
+  cat.records.push(rec);
+  await saveData();
+  closeModal();
+  renderRecords(cat);
+}
+
+// ── SHARE (iOS) ────────────────────────────────────────────────────────────────
+function shareRecords() {
+  const cat = CATEGORIES.find(c => c.id === currentCatId);
+  const sorted = sortRecords(cat.records);
+  const totalCost = cat.records.reduce((s, r) => s + (r.price || 0), 0);
+
+  let text = `📋 ${cat.emoji} ${cat.name}\n`;
+  text += `Total entries: ${cat.records.length} | Total cost: ฿${fmt(totalCost)}\n\n`;
+  sorted.forEach(r => {
+    text += `📅 ${fmtDate(r.date)}\n`;
+    text += `   ${r.desc}`;
+    if (r.km != null && cat.hasKM) text += ` (${fmt(r.km)} km)`;
+    if (r.price > 0) text += ` — ฿${fmt(r.price)}`;
+    text += '\n';
+  });
+
+  if (navigator.share) {
+    navigator.share({ title: cat.name + ' Records', text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Copied to clipboard!');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('Copied to clipboard!');
+    });
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+(async () => { await loadData(); renderLanding(); })();
+</script>
+</body>
+</html>
